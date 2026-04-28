@@ -390,7 +390,7 @@ const PROJECTS = [
   { name: "Meroitic",                          color: "#602969" },
 ];
 
-const KINDS = ["Research", "Coursework", "Project", "Lab"];
+const KINDS = ["Research", "Coursework", "Project", "Meetings", "Lab"];
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let selectedProject = null;
@@ -478,7 +478,7 @@ async function logEntry(startDate, endDate, notes) {
 
   if (selectedProject) props["Project"] = { select: { name: selectedProject } };
   if (selectedKind)    props["Kind"]    = { select: { name: selectedKind }    };
-  if (taskId)          props["Task"]    = { relation: [{ id: taskId }]        };
+  if (taskId)          props["Tasks"]   = { relation: [{ id: taskId }]        };
 
   await notion("/v1/pages", "POST", {
     parent:     { database_id: TIME_LOGS_DB },
@@ -655,7 +655,7 @@ async function renderCharts() {
   // Kind chart
   const kLabels  = KINDS.filter(k => byKind[k]);
   const kData    = kLabels.map(l => toHours(byKind[l]));
-  const kColors  = ["#eb9973","#cc4664","#8b3271","#602969"];
+  const kColors  = ["#eb9973","#cc4664","#a1386f","#752d6f","#602969"];
 
   if (chartKind) chartKind.destroy();
   chartKind = new Chart(document.getElementById("chart-kind"), {
