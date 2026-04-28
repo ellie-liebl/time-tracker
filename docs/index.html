@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Time Tracker</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+
+    body {
+      background: #120d1e;
+      color: #e8d5c4;
+      font-family: Georgia, 'Times New Roman', serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    /* ── Header & tabs ─────────────────────────────────────────────── */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 20px 0;
+      flex-shrink: 0;
+    }
+
+    .title {
+      font-size: 0.68rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: #eb9973;
+      opacity: 0.7;
+    }
+
+    .tabs { display: flex; }
+
+    .tab {
+      background: none;
+      border: none;
+      border-bottom: 1px solid transparent;
+      color: #a9bdc6;
+      font-family: Georgia, serif;
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 6px 14px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .tab.active { color: #eb9973; border-bottom-color: #eb9973; }
+    .tab:hover:not(.active) { color: #e8d5c4; }
+
+    /* ── Selectors ─────────────────────────────────────────────────── */
+    .selectors {
+      padding: 12px 20px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      flex-shrink: 0;
+    }
+
+    .pill-row { display: flex; flex-wrap: wrap; gap: 5px; }
+
+    .pill {
+      padding: 3px 11px;
+      border-radius: 20px;
+      font-size: 0.68rem;
+      font-family: Georgia, serif;
+      cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.04);
+      color: #a9bdc6;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .kind-pill.active {
+      background: rgba(235,153,115,0.12);
+      border-color: #eb9973;
+      color: #eb9973;
+    }
+
+    hr.divider {
+      border: none;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      margin: 10px 20px 0;
+      flex-shrink: 0;
+    }
+
+    /* ── Scrollable content ────────────────────────────────────────── */
+    .content { flex: 1; overflow-y: auto; padding: 0 20px 24px; }
+
+    ::-webkit-scrollbar { width: 3px; }
+    ::-webkit-scrollbar-thumb { background: rgba(235,153,115,0.2); border-radius: 2px; }
+
+    /* ── Timer tab ─────────────────────────────────────────────────── */
+    .timer-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 18px;
+      gap: 14px;
+    }
+
+    .task-select {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #e8d5c4;
+      font-family: Georgia, serif;
+      font-size: 0.78rem;
+      padding: 7px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .task-select:focus { outline: none; border-color: rgba(235,153,115,0.4); }
+    .task-select option { background: #1c1228; }
+
+    .clock {
+      font-size: 3.4rem;
+      letter-spacing: 0.06em;
+      color: #eb9973;
+      font-variant-numeric: tabular-nums;
+      min-width: 230px;
+      text-align: center;
+      transition: color 0.3s;
+    }
+    .clock.running { color: #e46c5d; }
+
+    .start-btn {
+      padding: 11px 52px;
+      border-radius: 30px;
+      border: none;
+      font-family: Georgia, serif;
+      font-size: 0.82rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.18s, box-shadow 0.18s;
+      background: linear-gradient(135deg, #eb9973 0%, #cc4664 60%, #8b3271 100%);
+      color: #120d1e;
+    }
+    .start-btn:hover { transform: scale(1.04); box-shadow: 0 4px 22px rgba(235,153,115,0.28); }
+    .start-btn.running { background: linear-gradient(135deg, #cc4664 0%, #752d6f 100%); }
+
+    .notes-input {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #e8d5c4;
+      font-family: Georgia, serif;
+      font-size: 0.78rem;
+      padding: 8px 12px;
+      border-radius: 6px;
+      resize: none;
+    }
+    .notes-input:focus { outline: none; border-color: rgba(235,153,115,0.35); }
+    .notes-input::placeholder { color: #a9bdc6; opacity: 0.5; }
+
+    .manual-toggle {
+      background: none;
+      border: none;
+      color: #a9bdc6;
+      font-family: Georgia, serif;
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      opacity: 0.55;
+      padding: 2px 0;
+      transition: opacity 0.15s;
+    }
+    .manual-toggle:hover { opacity: 1; }
+
+    .manual-form {
+      width: 100%;
+      display: none;
+      flex-direction: column;
+      gap: 9px;
+      padding: 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+    }
+    .manual-form.open { display: flex; }
+
+    .form-row { display: flex; gap: 8px; }
+
+    .form-field { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+
+    .form-field label {
+      font-size: 0.62rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #a9bdc6;
+      opacity: 0.65;
+    }
+
+    .form-field input, .form-field select {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #e8d5c4;
+      font-family: Georgia, serif;
+      font-size: 0.78rem;
+      padding: 6px 10px;
+      border-radius: 5px;
+    }
+    .form-field input:focus, .form-field select:focus { outline: none; border-color: rgba(235,153,115,0.4); }
+    .form-field select option { background: #1c1228; }
+
+    .submit-btn {
+      align-self: flex-end;
+      padding: 6px 20px;
+      border-radius: 20px;
+      border: 1px solid rgba(235,153,115,0.35);
+      background: rgba(235,153,115,0.08);
+      color: #eb9973;
+      font-family: Georgia, serif;
+      font-size: 0.72rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .submit-btn:hover { background: rgba(235,153,115,0.18); }
+
+    .status {
+      font-size: 0.7rem;
+      color: #a9bdc6;
+      opacity: 0;
+      transition: opacity 0.3s;
+      text-align: center;
+      min-height: 1rem;
+    }
+    .status.show { opacity: 0.75; }
+
+    /* ── Log tab ───────────────────────────────────────────────────── */
+    .log-entries { display: flex; flex-direction: column; gap: 7px; padding-top: 14px; }
+
+    .entry {
+      padding: 9px 13px;
+      border-radius: 7px;
+      background: rgba(255,255,255,0.03);
+      border-left: 3px solid #eb9973;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 8px;
+    }
+    .entry-title { font-size: 0.8rem; color: #e8d5c4; }
+    .entry-meta  { font-size: 0.66rem; color: #a9bdc6; opacity: 0.65; margin-top: 2px; }
+    .entry-dur   { font-size: 0.82rem; color: #eb9973; white-space: nowrap; }
+
+    /* ── Charts tab ────────────────────────────────────────────────── */
+    .charts-section { padding-top: 14px; display: flex; flex-direction: column; gap: 16px; }
+
+    .chart-controls { display: flex; align-items: center; gap: 10px; }
+    .chart-controls label { font-size: 0.68rem; color: #a9bdc6; opacity: 0.65; letter-spacing: 0.08em; }
+    .chart-controls select {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #e8d5c4;
+      font-family: Georgia, serif;
+      font-size: 0.72rem;
+      padding: 4px 8px;
+      border-radius: 5px;
+    }
+
+    .chart-wrap { background: rgba(255,255,255,0.03); border-radius: 8px; padding: 14px 14px 10px; }
+    .chart-label { font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase; color: #a9bdc6; opacity: 0.55; margin-bottom: 10px; }
+
+    .loading { text-align: center; color: #a9bdc6; opacity: 0.45; font-size: 0.75rem; padding: 24px; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <span class="title">time tracker</span>
+  <div class="tabs">
+    <button class="tab active" data-tab="timer"  onclick="switchTab(this)">Timer</button>
+    <button class="tab"        data-tab="log"    onclick="switchTab(this)">Log</button>
+    <button class="tab"        data-tab="charts" onclick="switchTab(this)">Charts</button>
+  </div>
+</div>
+
+<div class="selectors">
+  <div class="pill-row" id="project-pills"></div>
+  <div class="pill-row" id="kind-pills"></div>
+</div>
+
+<hr class="divider">
+
+<div class="content">
+
+  <!-- TIMER -->
+  <div id="tab-timer" class="tab-pane">
+    <div class="timer-section">
+      <select class="task-select" id="task-select">
+        <option value="">— no task linked —</option>
+      </select>
+
+      <div class="clock" id="clock">00:00:00</div>
+
+      <button class="start-btn" id="start-btn" onclick="toggleTimer()">Start</button>
+
+      <textarea class="notes-input" id="notes" placeholder="notes (optional)" rows="2"></textarea>
+
+      <button class="manual-toggle" onclick="toggleManual()">+ manual entry</button>
+
+      <div class="manual-form" id="manual-form">
+        <div class="form-row">
+          <div class="form-field">
+            <label>Date</label>
+            <input type="date" id="m-date">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label>Start</label>
+            <input type="time" id="m-start">
+          </div>
+          <div class="form-field">
+            <label>End</label>
+            <input type="time" id="m-end">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label>Notes</label>
+            <input type="text" id="m-notes" placeholder="what did you work on?">
+          </div>
+        </div>
+        <button class="submit-btn" onclick="submitManual()">Log entry</button>
+      </div>
+
+      <div class="status" id="status"></div>
+    </div>
+  </div>
+
+  <!-- LOG -->
+  <div id="tab-log" class="tab-pane" style="display:none">
+    <div class="log-entries" id="log-entries">
+      <div class="loading">Loading…</div>
+    </div>
+  </div>
+
+  <!-- CHARTS -->
+  <div id="tab-charts" class="tab-pane" style="display:none">
+    <div class="charts-section">
+      <div class="chart-controls">
+        <label>Last</label>
+        <select id="chart-days" onchange="renderCharts()">
+          <option value="7">7 days</option>
+          <option value="14">14 days</option>
+          <option value="30" selected>30 days</option>
+          <option value="90">90 days</option>
+        </select>
+      </div>
+      <div class="chart-wrap">
+        <div class="chart-label">By project</div>
+        <canvas id="chart-project" height="170"></canvas>
+      </div>
+      <div class="chart-wrap">
+        <div class="chart-label">By kind</div>
+        <canvas id="chart-kind" height="120"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── CONFIGURATION ────────────────────────────────────────────────────────────
+// Paste these in after setting up your Cloudflare Worker and Time Logs database.
+
+const WORKER_URL   = "https://notion-proxy.elizabethliebl.workers.dev";
+const TIME_LOGS_DB = "PASTE_TIME_LOGS_DATABASE_ID_HERE";
+const TASKS_DB     = "PASTE_TASKS_DATABASE_ID_HERE";
+
+// ─── DATA ─────────────────────────────────────────────────────────────────────
+// Projects map to Flare palette from darkest (Meroitic) to lightest (Language Development).
+// Add or remove entries here as your projects change — Notion select options must match exactly.
+
+const PROJECTS = [
+  { name: "Language Development",              color: "#eb9973" },
+  { name: "NLP Reading Group",                 color: "#e46c5d" },
+  { name: "Models of Learning and Processing", color: "#cc4664" },
+  { name: "Independent Study",                 color: "#b73d6b" },
+  { name: "Akuzipik Morphology",               color: "#8b3271" },
+  { name: "Meroitic",                          color: "#602969" },
+];
+
+const KINDS = ["Research", "Coursework", "Project", "Lab"];
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let selectedProject = null;
+let selectedKind    = null;
+let timerStart      = null;
+let timerInterval   = null;
+let tasks           = [];
+let chartProject    = null;
+let chartKind       = null;
+
+// ─── NOTION API ───────────────────────────────────────────────────────────────
+async function notion(path, method = "GET", body = null) {
+  const opts = { method, headers: { "Content-Type": "application/json" } };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(WORKER_URL + path, opts);
+  if (!r.ok) {
+    const err = await r.text();
+    throw new Error(`Notion ${r.status}: ${err}`);
+  }
+  return r.json();
+}
+
+// Local-time ISO string with timezone offset (so Notion shows your actual local time)
+function toNotionDT(date) {
+  const p    = n => String(n).padStart(2, "0");
+  const off  = -date.getTimezoneOffset();
+  const sign = off >= 0 ? "+" : "-";
+  const oh   = Math.floor(Math.abs(off) / 60);
+  const om   = Math.abs(off) % 60;
+  return `${date.getFullYear()}-${p(date.getMonth()+1)}-${p(date.getDate())}` +
+         `T${p(date.getHours())}:${p(date.getMinutes())}:${p(date.getSeconds())}` +
+         `${sign}${p(oh)}:${p(om)}`;
+}
+
+function fmtDuration(mins) {
+  if (!mins && mins !== 0) return "—";
+  if (mins < 60) return `${Math.round(mins)}m`;
+  const h = Math.floor(mins / 60), m = Math.round(mins % 60);
+  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
+
+// ─── TASKS ────────────────────────────────────────────────────────────────────
+async function loadTasks() {
+  try {
+    const data = await notion(`/v1/databases/${TASKS_DB}/query`, "POST", {
+      sorts:     [{ property: "Task", direction: "ascending" }],
+      page_size: 100,
+    });
+
+    tasks = (data.results || []).map(p => ({
+      id:      p.id,
+      name:    p.properties["Task"]?.title?.[0]?.plain_text || "Untitled",
+      project: p.properties["Project"]?.select?.name || "",
+      kind:    p.properties["Kind"]?.select?.name    || "",
+      status:  p.properties["Status"]?.status?.name  ||
+               p.properties["Status"]?.select?.name  || "",
+    })).filter(t => !["Done", "Complete", "Cancelled"].includes(t.status));
+
+    const sel = document.getElementById("task-select");
+    sel.innerHTML = '<option value="">— no task linked —</option>';
+    tasks.forEach(t => {
+      const opt = document.createElement("option");
+      opt.value = t.id;
+      opt.textContent = t.name + (t.project ? ` · ${t.project}` : "");
+      sel.appendChild(opt);
+    });
+  } catch(e) {
+    console.warn("Could not load tasks:", e.message);
+  }
+}
+
+// ─── LOG ENTRY ────────────────────────────────────────────────────────────────
+async function logEntry(startDate, endDate, notes) {
+  const taskId   = document.getElementById("task-select").value;
+  const taskName = tasks.find(t => t.id === taskId)?.name || "";
+  const fallback = [selectedProject, selectedKind].filter(Boolean).join(" · ") || "Time entry";
+  const title    = notes || taskName || fallback;
+
+  const props = {
+    "Name":  { title:     [{ text: { content: title } }] },
+    "Start": { date:      { start: toNotionDT(startDate) } },
+    "End":   { date:      { start: toNotionDT(endDate)   } },
+    "Notes": { rich_text: [{ text: { content: notes || "" } }] },
+  };
+
+  if (selectedProject) props["Project"] = { select: { name: selectedProject } };
+  if (selectedKind)    props["Kind"]    = { select: { name: selectedKind }    };
+  if (taskId)          props["Task"]    = { relation: [{ id: taskId }]        };
+
+  await notion("/v1/pages", "POST", {
+    parent:     { database_id: TIME_LOGS_DB },
+    properties: props,
+  });
+}
+
+// ─── TIMER ────────────────────────────────────────────────────────────────────
+function toggleTimer() {
+  timerInterval ? stopTimer() : startTimer();
+}
+
+function startTimer() {
+  timerStart    = new Date();
+  timerInterval = setInterval(tickClock, 1000);
+  document.getElementById("start-btn").textContent = "Stop";
+  document.getElementById("start-btn").classList.add("running");
+  document.getElementById("clock").classList.add("running");
+}
+
+async function stopTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+  const endTime = new Date();
+  const notes   = document.getElementById("notes").value.trim();
+
+  document.getElementById("start-btn").textContent = "Start";
+  document.getElementById("start-btn").classList.remove("running");
+  document.getElementById("clock").classList.remove("running");
+  document.getElementById("clock").textContent = "00:00:00";
+
+  try {
+    showStatus("Saving…");
+    await logEntry(timerStart, endTime, notes);
+    showStatus("Logged ✓");
+    document.getElementById("notes").value = "";
+  } catch(e) {
+    showStatus("Error — check console");
+    console.error(e);
+  }
+}
+
+function tickClock() {
+  const s   = Math.floor((Date.now() - timerStart) / 1000);
+  const p   = n => String(n).padStart(2, "0");
+  document.getElementById("clock").textContent =
+    `${p(Math.floor(s/3600))}:${p(Math.floor((s%3600)/60))}:${p(s%60)}`;
+}
+
+// ─── MANUAL ENTRY ─────────────────────────────────────────────────────────────
+function toggleManual() {
+  const form = document.getElementById("manual-form");
+  form.classList.toggle("open");
+  if (form.classList.contains("open") && !document.getElementById("m-date").value) {
+    document.getElementById("m-date").value = new Date().toISOString().split("T")[0];
+  }
+}
+
+async function submitManual() {
+  const date  = document.getElementById("m-date").value;
+  const start = document.getElementById("m-start").value;
+  const end   = document.getElementById("m-end").value;
+  const notes = document.getElementById("m-notes").value.trim();
+
+  if (!date || !start || !end) { showStatus("Date, start, and end are required"); return; }
+
+  const s = new Date(`${date}T${start}`);
+  const e = new Date(`${date}T${end}`);
+  if (e <= s) { showStatus("End time must be after start"); return; }
+
+  try {
+    showStatus("Saving…");
+    await logEntry(s, e, notes);
+    showStatus("Logged ✓");
+    ["m-notes","m-start","m-end"].forEach(id => document.getElementById(id).value = "");
+    document.getElementById("manual-form").classList.remove("open");
+  } catch(err) {
+    showStatus("Error — check console");
+    console.error(err);
+  }
+}
+
+// ─── LOG TAB ──────────────────────────────────────────────────────────────────
+async function loadLog() {
+  const container = document.getElementById("log-entries");
+  container.innerHTML = '<div class="loading">Loading…</div>';
+  try {
+    const since = new Date(); since.setDate(since.getDate() - 30);
+    const data  = await notion(`/v1/databases/${TIME_LOGS_DB}/query`, "POST", {
+      filter: { property: "Start", date: { on_or_after: since.toISOString().split("T")[0] } },
+      sorts:  [{ property: "Start", direction: "descending" }],
+      page_size: 50,
+    });
+
+    if (!data.results?.length) {
+      container.innerHTML = '<div class="loading">No entries yet.</div>';
+      return;
+    }
+
+    container.innerHTML = "";
+    for (const page of data.results) {
+      const p       = page.properties;
+      const title   = p["Name"]?.title?.[0]?.plain_text || "—";
+      const project = p["Project"]?.select?.name || "";
+      const kind    = p["Kind"]?.select?.name    || "";
+      const dur     = p["Duration"]?.formula?.number ?? null;
+      const start   = p["Start"]?.date?.start;
+      const color   = PROJECTS.find(pr => pr.name === project)?.color || "#eb9973";
+      const dateStr = start
+        ? new Date(start).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+        : "—";
+      const meta    = [dateStr, kind, project].filter(Boolean).join(" · ");
+
+      const el = document.createElement("div");
+      el.className = "entry";
+      el.style.borderLeftColor = color;
+      el.innerHTML = `
+        <div>
+          <div class="entry-title">${title}</div>
+          <div class="entry-meta">${meta}</div>
+        </div>
+        <div class="entry-dur">${fmtDuration(dur)}</div>`;
+      container.appendChild(el);
+    }
+  } catch(e) {
+    container.innerHTML = '<div class="loading">Error loading entries.</div>';
+    console.error(e);
+  }
+}
+
+// ─── CHARTS ───────────────────────────────────────────────────────────────────
+async function renderCharts() {
+  const days  = parseInt(document.getElementById("chart-days").value);
+  const since = new Date(); since.setDate(since.getDate() - days);
+
+  let logs = [];
+  try {
+    const data = await notion(`/v1/databases/${TIME_LOGS_DB}/query`, "POST", {
+      filter:    { property: "Start", date: { on_or_after: since.toISOString().split("T")[0] } },
+      sorts:     [{ property: "Start", direction: "descending" }],
+      page_size: 100,
+    });
+    logs = data.results || [];
+  } catch(e) { console.error(e); return; }
+
+  // Aggregate
+  const byProject = {}, byKind = {};
+  for (const log of logs) {
+    const p   = log.properties;
+    const dur = p["Duration"]?.formula?.number ?? 0;
+    const prj = p["Project"]?.select?.name || "Other";
+    const knd = p["Kind"]?.select?.name    || "Other";
+    byProject[prj] = (byProject[prj] || 0) + dur;
+    byKind[knd]    = (byKind[knd]    || 0) + dur;
+  }
+
+  const toHours = mins => Math.round(mins / 60 * 10) / 10;
+
+  // Project chart — preserve PROJECTS order
+  const pLabels  = PROJECTS.map(p => p.name).filter(n => byProject[n]);
+  const pData    = pLabels.map(l => toHours(byProject[l]));
+  const pColors  = pLabels.map(l => PROJECTS.find(p => p.name === l)?.color || "#eb9973");
+
+  if (chartProject) chartProject.destroy();
+  chartProject = new Chart(document.getElementById("chart-project"), {
+    type: "bar",
+    data: {
+      labels: pLabels.map(l => l.length > 18 ? l.slice(0,16)+"…" : l),
+      datasets: [{ data: pData, backgroundColor: pColors, borderRadius: 4, borderSkipped: false }],
+    },
+    options: chartOpts(),
+  });
+
+  // Kind chart
+  const kLabels  = KINDS.filter(k => byKind[k]);
+  const kData    = kLabels.map(l => toHours(byKind[l]));
+  const kColors  = ["#eb9973","#cc4664","#8b3271","#602969"];
+
+  if (chartKind) chartKind.destroy();
+  chartKind = new Chart(document.getElementById("chart-kind"), {
+    type: "bar",
+    data: {
+      labels: kLabels,
+      datasets: [{ data: kData, backgroundColor: kColors, borderRadius: 4, borderSkipped: false }],
+    },
+    options: chartOpts(),
+  });
+}
+
+function chartOpts() {
+  const tick = { color: "#a9bdc6", font: { family: "Georgia", size: 11 } };
+  return {
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: tick, grid: { color: "rgba(255,255,255,0.04)" } },
+      y: {
+        ticks: { ...tick, callback: v => v + "h" },
+        grid:  { color: "rgba(255,255,255,0.04)" },
+        beginAtZero: true,
+      },
+    },
+  };
+}
+
+// ─── UI HELPERS ───────────────────────────────────────────────────────────────
+function switchTab(btn) {
+  const name = btn.dataset.tab;
+  document.querySelectorAll(".tab-pane").forEach(p => p.style.display = "none");
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  document.getElementById(`tab-${name}`).style.display = "block";
+  btn.classList.add("active");
+  if (name === "log")    loadLog();
+  if (name === "charts") renderCharts();
+}
+
+function showStatus(msg) {
+  const el = document.getElementById("status");
+  el.textContent = msg;
+  el.classList.add("show");
+  setTimeout(() => el.classList.remove("show"), 2500);
+}
+
+// ─── BUILD PILLS ──────────────────────────────────────────────────────────────
+function buildPills() {
+  const pp = document.getElementById("project-pills");
+  PROJECTS.forEach(proj => {
+    const btn = document.createElement("button");
+    btn.className   = "pill project-pill";
+    btn.textContent = proj.name;
+    btn.onclick = () => {
+      selectedProject = selectedProject === proj.name ? null : proj.name;
+      document.querySelectorAll(".project-pill").forEach(b => {
+        const active = b.textContent === selectedProject;
+        const p      = PROJECTS.find(p => p.name === b.textContent);
+        b.classList.toggle("active", active);
+        b.style.background  = active ? p.color               : "rgba(255,255,255,0.04)";
+        b.style.borderColor = active ? p.color               : "rgba(255,255,255,0.1)";
+        b.style.color       = active ? "#120d1e"             : "#a9bdc6";
+        b.style.fontWeight  = active ? "bold"                : "normal";
+      });
+    };
+    pp.appendChild(btn);
+  });
+
+  const kp = document.getElementById("kind-pills");
+  KINDS.forEach(kind => {
+    const btn = document.createElement("button");
+    btn.className   = "pill kind-pill";
+    btn.textContent = kind;
+    btn.onclick = () => {
+      selectedKind = selectedKind === kind ? null : kind;
+      document.querySelectorAll(".kind-pill")
+        .forEach(b => b.classList.toggle("active", b.textContent === selectedKind));
+    };
+    kp.appendChild(btn);
+  });
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+buildPills();
+loadTasks();
+</script>
+</body>
+</html>
