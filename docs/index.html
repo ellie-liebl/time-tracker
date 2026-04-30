@@ -104,8 +104,10 @@
       gap: 14px;
     }
 
+    .task-row { display: flex; gap: 6px; width: 100%; align-items: center; }
+
     .task-select {
-      width: 100%;
+      flex: 1;
       background: rgba(255,255,255,0.04);
       border: 1px solid rgba(255,255,255,0.1);
       color: #e8d5c4;
@@ -117,6 +119,24 @@
     }
     .task-select:focus { outline: none; border-color: rgba(235,153,115,0.4); }
     .task-select option { background: #1c1228; }
+
+    .refresh-btn {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #a9bdc6;
+      font-size: 1rem;
+      width: 34px;
+      height: 34px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: color 0.15s, border-color 0.15s, transform 0.3s;
+    }
+    .refresh-btn:hover { color: #eb9973; border-color: rgba(235,153,115,0.4); }
+    .refresh-btn.spinning { transform: rotate(360deg); }
 
     .clock {
       font-size: 3.4rem;
@@ -295,9 +315,12 @@
   <!-- TIMER -->
   <div id="tab-timer" class="tab-pane">
     <div class="timer-section">
-      <select class="task-select" id="task-select">
-        <option value="">— no task linked —</option>
-      </select>
+      <div class="task-row">
+        <select class="task-select" id="task-select">
+          <option value="">— no task linked —</option>
+        </select>
+        <button class="refresh-btn" id="refresh-btn" onclick="refreshTasks()" title="Refresh task list">↺</button>
+      </div>
 
       <div class="clock" id="clock">00:00:00</div>
 
@@ -736,6 +759,13 @@ function buildPills() {
     };
     kp.appendChild(btn);
   });
+}
+
+async function refreshTasks() {
+  const btn = document.getElementById("refresh-btn");
+  btn.classList.add("spinning");
+  await loadTasks();
+  setTimeout(() => btn.classList.remove("spinning"), 400);
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
