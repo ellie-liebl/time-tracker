@@ -414,7 +414,7 @@ const PROJECTS = [
   { name: "ComputEL",                          color: "#e88366" },
 ];
 
-const KINDS = ["Research", "Coursework", "Project", "Meetings", "Lab"];
+const KINDS = ["Research", "Coursework", "Project", "Meetings", "Lab", "Admin and Planning"];
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let selectedProject = null;
@@ -679,7 +679,7 @@ async function renderCharts() {
   // Kind chart
   const kLabels  = KINDS.filter(k => byKind[k]);
   const kData    = kLabels.map(l => toHours(byKind[l]));
-  const kColors  = ["#eb9973","#cc4664","#a1386f","#752d6f","#602969"];
+  const kColors  = ["#eb9973","#cc4664","#a1386f","#752d6f","#602969","#eb9973"];
 
   if (chartKind) chartKind.destroy();
   chartKind = new Chart(document.getElementById("chart-kind"), {
