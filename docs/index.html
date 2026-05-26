@@ -405,16 +405,15 @@ const TASKS_DB     = "350e4f9c7c2d80b18f3dcc8353274438";
 // Add or remove entries here as your projects change — Notion select options must match exactly.
 
 const PROJECTS = [
-  { name: "Language Development",              color: "#eb9973" },
-  { name: "NLP Reading Group",                 color: "#e46c5d" },
-  { name: "Models of Learning and Processing", color: "#cc4664" },
-  { name: "Independent Study",                 color: "#b73d6b" },
-  { name: "Akuzipik Morphology",               color: "#8b3271" },
-  { name: "Meroitic",                          color: "#602969" },
-  { name: "ComputEL",                          color: "#e88366" },
+  { name: "Admin and Planning", color: "#e98d6b" },
+  { name: "Akuzipik Morphology", color: "#e3685c" },
+  { name: "ComputEL", color: "#d14a61" },
+  { name: "Meroitic", color: "#b13c6c" },
+  { name: "Topic Particle Acquisition", color: "#8f3371" },
+  { name: "Related Languages ASR", color: "#6c2b6d" },
 ];
 
-const KINDS = ["Research", "Coursework", "Project", "Meetings", "Lab", "Admin and Planning"];
+const KINDS = ["Admin and Planning", "Coursework", "Lab", "Meetings", "Project", "Research"];
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let selectedProject = null;
@@ -679,7 +678,7 @@ async function renderCharts() {
   // Kind chart
   const kLabels  = KINDS.filter(k => byKind[k]);
   const kData    = kLabels.map(l => toHours(byKind[l]));
-  const kColors  = ["#eb9973","#cc4664","#a1386f","#752d6f","#602969","#eb9973"];
+  const kColors  = ['#863071', '#a3386f', '#c14168', '#d9535d', '#e5715e', '#ea916e'];
 
   if (chartKind) chartKind.destroy();
   chartKind = new Chart(document.getElementById("chart-kind"), {
